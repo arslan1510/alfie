@@ -104,7 +104,7 @@ class TestExplainModelEndpoint:
 
 
 class TestExplainModelOutputFormat:
-    """/explain-model output_format: html (default), json, both."""
+    """/explain-model output_format: both (default), html, json."""
 
     @staticmethod
     def _post(client, **form):
@@ -124,10 +124,16 @@ class TestExplainModelOutputFormat:
             data={"target_col": "target", **form},
         )
 
-    def test_default_is_html(self, client):
+    def test_default_is_both(self, client):
         response = self._post(client)
         assert response.status_code == 200
+        assert set(response.json()) == {"report_data", "html_report"}
+
+    def test_html_returns_page(self, client):
+        response = self._post(client, output_format="html")
+        assert response.status_code == 200
         assert response.headers["content-type"].startswith("text/html")
+        assert response.text.startswith("<!DOCTYPE html>")
 
     def test_json_returns_report_data(self, client):
         response = self._post(client, output_format="json")

@@ -303,11 +303,15 @@ async def health():
 
 @app.post(
     "/explain-model",
-    response_class=HTMLResponse,
+    response_class=JSONResponse,
     tags=["Explainability"],
     summary="Generate explainability report for any model",
     responses={
-        200: {"description": "HTML report, JSON report data, or both (see output_format)"},
+        200: {
+            "description": "By default a JSON object with `report_data` and `html_report`; "
+                           "only the HTML page or only the JSON data with output_format=html/json",
+            "content": {"text/html": {}},
+        },
         400: {"model": ErrorResponse, "description": "Invalid input"},
         500: {"model": ErrorResponse, "description": "Server error"}
     }
@@ -336,9 +340,9 @@ async def explain_model(
         description="Max samples for SHAP/importance computation"
     ),
     output_format: OutputFormat = Form(
-        default=OutputFormat.html,
-        description="'html' (report page), 'json' (report data, no plots) or "
-                    "'both' (JSON object with report_data and html_report)"
+        default=OutputFormat.both,
+        description="'both' (default: JSON object with report_data and html_report), "
+                    "'html' (report page only) or 'json' (report data only, no images)"
     )
 ):
     """
@@ -355,8 +359,9 @@ async def explain_model(
     **Note:** For AutoGluon models, categorical data is handled automatically
     by the native EDA module. No manual encoding required.
 
-    **Returns:** HTML report with visualizations, or its underlying data as
-    JSON (metrics, feature importance, data analysis) via `output_format`.
+    **Returns:** by default `{"report_data": ..., "html_report": ...}`: the report's
+    data as JSON (metrics, feature importance, chart data, data analysis) plus the
+    HTML report. Send `output_format=html` for only the page, `json` for only the data.
     """
     try:
         print(f"Received explain-model request:")
